@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 from typing import Dict, Any, List
 
-st.set_page_config(page_title="Loan Prediction (JSON) + Hardrule", layout="centered")
+st.set_page_config(page_title="Loan Prediction Logistic Regression Model (JSON) + Hardrule", layout="centered")
 
 MODEL_PATH = "logistic_regression_model.pkl"
 SCALER_PATH = "scaler_model.pkl"
@@ -225,12 +225,11 @@ def check_hardrules(full_input: Dict[str, Any]) -> List[str]:
     # 11 - postcode harus ada di whitelist
     pc = parse_postcode(full_input.get("post_code", ""))
     if pc is None or pc not in ALLOWED_POSTCODES:
-        reasons.append("Hardrule 11: post_code tidak termasuk whitelist")
+        reasons.append("Hardrule 11: invalid post_code (not in allowed list)")
 
     # 1 (gating note)
     if (TOPUP == 1 or RELOAN == 1) and len(reasons) > 0:
-        reasons.insert(0, "Hardrule 1: TOPUP/RELOAN=1 + ada hardrule lain -> model tidak dipanggil")
-
+        reasons.insert(0, "Hardrule 1: TOPUP/RELOAN=1 + other hardrule hits -> model not called")
     return reasons
 
 def build_defaults() -> Dict[str, Any]:
@@ -250,7 +249,7 @@ def build_defaults() -> Dict[str, Any]:
 # UI
 # =========================
 st.title("Loan Prediction (JSON Input) + Hardrule 1-11")
-st.caption("Tempel JSON input → hardrule check → kalau lolos baru panggil model.")
+st.caption("Tempel JSON input → hardrule check → if no hardrule hits, call model.")
 
 model, scaler = load_artifacts()
 
@@ -260,13 +259,13 @@ with st.expander("Template JSON (copy)"):
     st.code(json.dumps(default_payload, indent=2), language="json")
 
 raw_json = st.text_area("JSON Input", value=json.dumps(default_payload, indent=2), height=420)
-run = st.button("Evaluate")
+run = st.button("Predict")
 
 if run:
     try:
         payload = json.loads(raw_json)
         if not isinstance(payload, dict):
-            raise ValueError("JSON harus object/dict.")
+            raise ValueError("JSON must in object/dict.")
 
         # merge defaults -> missing key tidak bikin error
         full_input = build_defaults()
@@ -277,8 +276,8 @@ if run:
         # ===== 1) Hardrule =====
         hardrule_hits = check_hardrules(full_input)
         if hardrule_hits:
-            st.error("REJECTED (Hardrule) — model tidak dipanggil")
-            st.write("Alasan:")
+            st.error("REJECTED (Hardrule) — model not called")
+            st.write("Reasons:")
             for r in hardrule_hits:
                 st.write(f"- {r}")
 
@@ -317,10 +316,10 @@ if run:
         with st.expander("Input FULL (audit)"):
             st.dataframe(X_full[FEATURE_ORDER_UI])
 
-        with st.expander("Input masuk MODEL (drop + encode)"):
+        with st.expander("Input MODEL (drop + encode)"):
             st.dataframe(X_model_enc)
 
     except json.JSONDecodeError as e:
-        st.error(f"JSON tidak valid: {e}")
+        st.error(f"JSON Not Valid: {e}")
     except Exception as e:
         st.error(f"Error: {e}")
