@@ -248,8 +248,8 @@ def build_defaults() -> Dict[str, Any]:
 # =========================
 # UI
 # =========================
-st.title("Loan Prediction (JSON Input) + Hardrule 1-11")
-st.caption("Tempel JSON input → hardrule check → if no hardrule hits, call model.")
+st.title("Loan Prediction Logistic Regression Model (JSON Input) + Hardrule 1-11")
+st.caption("Paste JSON input → hardrule check → if no hardrule hits, call model.")
 
 model, scaler = load_artifacts()
 
